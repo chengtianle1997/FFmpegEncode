@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FFmpegMain.c">
+    <ClCompile Include="FFmpegMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
