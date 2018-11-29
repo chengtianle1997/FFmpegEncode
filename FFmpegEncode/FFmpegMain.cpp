@@ -254,6 +254,8 @@ int main(int argc, char* argv[])
 
 	AVPacket pkt;
 
+	
+
 	int y_size;
 
 	int framecnt = 0;
@@ -270,7 +272,7 @@ int main(int argc, char* argv[])
 	char filename_out[] = "ds.hevc";
 
 #else
-
+	//转码后的视频格式
 	AVCodecID codec_id = AV_CODEC_ID_H264;
 
 	char filename_out[] = "ds.h264";
@@ -280,7 +282,9 @@ int main(int argc, char* argv[])
 	int in_w = 480, in_h = 272;
 
 	int framenum = 100;
+	//注册所有编译器
 	avcodec_register_all();
+	//查找编码器
 	pCodec = avcodec_find_encoder(codec_id);
 
 	if (!pCodec) {
@@ -290,7 +294,7 @@ int main(int argc, char* argv[])
 		return -1;
 
 	}
-
+	//申请AVcodecContext空间
 	pCodecCtx = avcodec_alloc_context3(pCodec);
 
 	if (!pCodecCtx) {
@@ -329,7 +333,7 @@ int main(int argc, char* argv[])
 	}
 
 
-
+	//frame申请空间
 	pFrame = av_frame_alloc();
 
 	if (!pFrame) {
@@ -349,9 +353,33 @@ int main(int argc, char* argv[])
 
 
 
-
 	ret = av_image_alloc(pFrame->data, pFrame->linesize, pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, 16);
+	/*
+	pointers[4]：保存图像通道的地址。如果是RGB，则前三个指针分别指向R, G, B的内存地址。第四个指针保留不用
+		linesizes[4]：保存图像每个通道的内存对齐的步长，即一行的对齐内存的宽度，此值大小等于图像宽度。
+	    w : 要申请内存的图像宽度。
+		h : 要申请内存的图像高度。
+		pix_fmt : 要申请内存的图像的像素格式。
+		align : 用于内存对齐的值。
+		返回值：所申请的内存空间的总大小。如果是负值，表示申请失败。
+    	/**
+		 * Allocate an image with size w and h and pixel format pix_fmt, and
 
+		 * fill pointers and linesizes accordingly.
+
+		 * The allocated image buffer has to be freed by using
+
+		 * av_freep(&pointers[0]).
+
+		 *
+
+		 * @param align the value to use for buffer size alignment
+
+		 * @return the size in bytes required for the image buffer, a negative
+
+		 * error code in case of failure
+
+		 */
 	if (ret < 0) {
 
 		printf("Could not allocate raw picture buffer\n");
@@ -361,11 +389,6 @@ int main(int argc, char* argv[])
 	}
 
 	//Input raw data
-
-
-
-
-
 	fp_in = fopen(filename_in, "rb");
 
 	if (!fp_in) {
