@@ -444,10 +444,6 @@ int main(int argc, char* argv[])
 
 		}
 
-
-
-
-
 		pFrame->pts = i;
 
 		/* encode the image */

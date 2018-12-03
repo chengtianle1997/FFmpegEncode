@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 
+
 #ifdef _WIN32
 
  //Windows
@@ -100,7 +101,7 @@ int main(int argc, char* argv[])
 
 	int size;
 
-
+	int framenum = 100;
 
 	int ret = 0;
 
@@ -110,13 +111,14 @@ int main(int argc, char* argv[])
 
 	int in_w = 480, in_h = 272;                           //YUV's width and height
 
-	const char* out_file = "dv_encode.jpg";    //Output file
-
-
+	const char* out_file = "dv_encode.mjpeg";    //Output file
 
 	in_file = fopen("ds_480x272.yuv", "rb");
 
-
+	if (!in_file)
+	{
+		printf("error");
+	}
 
 	av_register_all();
 
@@ -174,17 +176,22 @@ int main(int argc, char* argv[])
 
 	pCodecCtx->height = in_h;
 
-
+	pCodecCtx->bit_rate = 400000;
 
 	pCodecCtx->time_base.num = 1;
 
 	pCodecCtx->time_base.den = 25;
 
+	//pCodecCtx->gop_size = 10;
+
+	pCodecCtx->framerate.den = 1;
+
+	pCodecCtx->framerate.num = 25;
+
+
 	//Output some information
 
 	av_dump_format(pFormatCtx, 0, out_file, 1);
-
-
 
 	pCodec = avcodec_find_encoder(pCodecCtx->codec_id);
 
@@ -204,6 +211,8 @@ int main(int argc, char* argv[])
 
 	}
 
+
+
 	picture = av_frame_alloc();
 
 	size = avpicture_get_size(pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
@@ -220,61 +229,100 @@ int main(int argc, char* argv[])
 
 	avpicture_fill((AVPicture *)picture, picture_buf, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
 
+	picture->width = pCodecCtx->width;
 
+	picture->height = pCodecCtx->height;
+
+	picture->format = pCodecCtx->pix_fmt;
 
 	//Write Header
 
 	avformat_write_header(pFormatCtx, NULL);
 
-
-
 	y_size = pCodecCtx->width * pCodecCtx->height;
 
-	av_new_packet(&pkt, y_size * 3);
+	int i;
 
-	//Read YUV
+	for ( i = 0; i < framenum; i++) {
 
-	if (fread(picture_buf, 1, y_size * 3 / 2, in_file) <= 0)
+		av_new_packet(&pkt, y_size * 3);
 
-	{
+		pkt.data = NULL;
 
-		printf("Could not read input file.");
+		pkt.size = 0;
 
-		return -1;
+		//Read YUV
 
+		if (fread(picture_buf, 1, y_size * 3 / 2, in_file) <= 0)
+
+		{
+
+			printf("Could not read input file.");
+
+			return -1;
+
+		}
+
+		picture->data[0] = picture_buf;              // Y
+
+		picture->data[1] = picture_buf + y_size;      // U 
+
+		picture->data[2] = picture_buf + y_size * 5 / 4;  // V
+
+
+
+		picture->pts = i;
+
+
+		//Encode
+
+		ret = avcodec_encode_video2(pCodecCtx, &pkt, picture, &got_picture);
+
+		if (ret < 0) {
+
+			printf("Encode Error.\n");
+
+			return -1;
+
+		}
+
+		if (got_picture == 1) {
+
+			pkt.stream_index = video_st->index;
+
+			ret = av_write_frame(pFormatCtx, &pkt);
+
+		}
+
+		av_free_packet(&pkt);
 	}
+	
+	//Flush Encorder
+	for (got_picture = 1; got_picture; i++) {
 
-	picture->data[0] = picture_buf;              // Y
+		ret = avcodec_encode_video2(pCodecCtx, &pkt, NULL, &got_picture);
 
-	picture->data[1] = picture_buf + y_size;      // U 
+		if (ret < 0) {
 
-	picture->data[2] = picture_buf + y_size * 5 / 4;  // V
+			printf("Error encoding frame\n");
 
+			return -1;
 
+		}
 
-	//Encode
+		if (got_picture) {
 
-	ret = avcodec_encode_video2(pCodecCtx, &pkt, picture, &got_picture);
+			printf("Flush Encoder: Succeed to encode 1 frame!\tsize:%5d\n", pkt.size);
 
-	if (ret < 0) {
+			av_write_frame(pFormatCtx, &pkt);
 
-		printf("Encode Error.\n");
+			//fwrite(pkt.data, 1, pkt.size, out_file);
 
-		return -1;
+			av_free_packet(&pkt);
 
-	}
+		}
+	 }
 
-	if (got_picture == 1) {
-
-		pkt.stream_index = video_st->index;
-
-		ret = av_write_frame(pFormatCtx, &pkt);
-
-	}
-
-
-
-	av_free_packet(&pkt);
 
 	//Write Trailer
 
