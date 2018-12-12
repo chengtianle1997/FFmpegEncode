@@ -21,6 +21,10 @@ extern "C"
 
 #include "libavutil/imgutils.h"
 
+#include "libavformat/avformat.h"
+
+#include "libavformat/avio.h"
+
 };
 
 #else
@@ -149,6 +153,7 @@ int main(int argc, char* argv[])
 	pCodecCtx->framerate.num = 25;
 
 	//pCodecCtx->max_b_frames = 1;
+	pCodecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
 
 	pCodecCtx->pix_fmt = AV_PIX_FMT_YUVJ420P;
 
@@ -306,6 +311,7 @@ int main(int argc, char* argv[])
 		}
 
 	}
+	av_write_trailer();
 
 	//Flush Encoder
 
@@ -314,9 +320,7 @@ int main(int argc, char* argv[])
 		ret = avcodec_encode_video2(pCodecCtx, &pkt, NULL, &got_output);
 
 		if (ret < 0) {
-
 			printf("Error encoding frame\n");
-
 			return -1;
 
 		}
