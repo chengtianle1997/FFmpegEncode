@@ -1,31 +1,4 @@
 
-/**
-
- * 最简单的基于FFmpeg的图像编码器
-
- * Simplest FFmpeg Picture Encoder
-
- *
-
- * 雷霄骅 Lei Xiaohua
-
- * leixiaohua1020@126.com
-
- * 中国传媒大学/数字电视技术
-
- * Communication University of China / Digital TV Technology
-
- * http://blog.csdn.net/leixiaohua1020
-
- *
-
- * 本程序实现了YUV420P像素数据编码为JPEG图片。是最简单的FFmpeg编码方面的教程。
-
- * 通过学习本例子可以了解FFmpeg的编码流程。
-
- */
-
-
 
 #include <stdio.h>
 
@@ -117,14 +90,13 @@ int main(int argc, char* argv[])
 
 	const char* out_file = "encode.mjpeg";    //Output file
 
-
+    AVCodecID codec_id = AV_CODEC_ID_MJPEG;
 
 	in_file = fopen("ds_480x272.yuv", "rb");
 
-
-
 	av_register_all();
 
+	
 
 
 	//Method 1
@@ -156,7 +128,6 @@ int main(int argc, char* argv[])
 	//fmt = pFormatCtx->oformat;
 
 
-
 	video_st = avformat_new_stream(pFormatCtx, 0);
 
 	if (video_st == NULL) {
@@ -171,7 +142,7 @@ int main(int argc, char* argv[])
 
 	pCodecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
 
-	pCodecCtx->pix_fmt = AV_PIX_FMT_YUVJ420P;
+	pCodecCtx->pix_fmt = AV_PIX_FMT_YUVJ422P;
 
 
 
@@ -213,9 +184,18 @@ int main(int argc, char* argv[])
 
 	}
 
+	avcodec_parameters_from_context(video_st->codecpar, pCodecCtx);
+
+
 	picture = av_frame_alloc();
 
 	size = avpicture_get_size(pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
+
+	picture->width = pCodecCtx->width;
+
+	picture->height = pCodecCtx->height;
+
+	picture->format = AV_PIX_FMT_GRAY8;
 
 	picture_buf = (uint8_t *)av_malloc(size);
 
@@ -228,8 +208,6 @@ int main(int argc, char* argv[])
 	}
 
 	avpicture_fill((AVPicture *)picture, picture_buf, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
-
-
 
 	//Write Header
 
@@ -311,8 +289,6 @@ int main(int argc, char* argv[])
 	avio_close(pFormatCtx->pb);
 
 	avformat_free_context(pFormatCtx);
-
-
 
 	fclose(in_file);
 

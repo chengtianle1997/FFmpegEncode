@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 
 	pCodecCtx->time_base.den = 25;
 
-	pCodecCtx->gop_size = 10;
+	pCodecCtx->gop_size = 100;
 
 	pCodecCtx->framerate.den = 1;
 
