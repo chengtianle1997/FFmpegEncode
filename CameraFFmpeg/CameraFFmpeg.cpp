@@ -194,6 +194,7 @@ int main(int argc, char* argv[])
 		printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
 	}
 	g_nPayloadSize = stParam.nCurValue;
+
 	//Get the width and Height of the Camera
 	MVCC_INTVALUE pIntValue;
 	memset(&pIntValue, 0, sizeof(MVCC_INTVALUE));
@@ -202,6 +203,33 @@ int main(int argc, char* argv[])
 	MV_CC_GetIntValue(handle, "Height", &pIntValue);
 	in_h = pIntValue.nCurValue;
 	//printf("%d*%d", in_w, in_h);
+
+
+
+	//Set the properties of the camera
+	//设置曝光时间
+	float newExposureTime = 10000;
+	nRet = MV_CC_SetFloatValue(handle, "ExposureTime", newExposureTime);
+	if (MV_OK != nRet)
+	{
+		printf("Set ExposureTime fail! nRet [0x%x]\n", nRet);
+	}
+	//设置帧率
+	float newAcquisitionFrameRate = 60.0;
+	nRet = MV_CC_SetFloatValue(handle, "AcquisitionFrameRate", newAcquisitionFrameRate);
+	if (MV_OK != nRet)
+	{
+		printf("Set AcquisitionFrameRate fail! nRet [0x%x]\n", nRet);
+	}
+	//设置增益
+	float newGain = 15.0;
+	nRet = MV_CC_SetFloatValue(handle, "Gain", newGain);
+	if (MV_OK != nRet)
+	{
+		printf("Set Gain fail! nRet [0x%x]\n", nRet);
+	}
+
+
 
 	//开始取流
 	nRet = MV_CC_StartGrabbing(handle);
@@ -354,7 +382,8 @@ int main(int argc, char* argv[])
 			{
 				pDataForYUV[j] = (uint8_t)stOutFrame.pBufAddr[j];
 				pDataForYUV[stOutFrame.stFrameInfo.nWidth*stOutFrame.stFrameInfo.nHeight + j] = 128;
-				pDataForYUV[stOutFrame.stFrameInfo.nWidth*stOutFrame.stFrameInfo.nHeight*2 + j] = 128;
+				pDataForYUV[stOutFrame.stFrameInfo.nWidth*stOutFrame.stFrameInfo.nHeight *2 + j] = 128;
+				
 			}
 			
 			picture->data[0] = pDataForYUV;
