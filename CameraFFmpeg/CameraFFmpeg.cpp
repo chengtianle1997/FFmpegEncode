@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
 
 	//unsigned char * pData = NULL;
 
-	unsigned char *pDataForYUV = NULL;
+	uint8_t *pDataForYUV = NULL;
 
 	AVCodecID codec_id = AV_CODEC_ID_MJPEG;
 
@@ -196,10 +196,9 @@ int main(int argc, char* argv[])
 	g_nPayloadSize = stParam.nCurValue;
 	//Get the width and Height of the Camera
 	MVCC_INTVALUE pIntValue;
-	memset(&pIntValue, 0, sizeof(MVCC_INTVALUE_EX));
+	memset(&pIntValue, 0, sizeof(MVCC_INTVALUE));
 	MV_CC_GetIntValue(handle, "Width", &pIntValue);
 	in_w = pIntValue.nCurValue;
-	//memset(&pIntValue, 0, sizeof(MVCC_INTVALUE_EX));
 	MV_CC_GetIntValue(handle, "Height", &pIntValue);
 	in_h = pIntValue.nCurValue;
 	//printf("%d*%d", in_w, in_h);
@@ -246,7 +245,7 @@ int main(int argc, char* argv[])
 
 	pCodecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
 
-	pCodecCtx->pix_fmt = AV_PIX_FMT_YUVJ422P;
+	pCodecCtx->pix_fmt = AV_PIX_FMT_YUVJ444P;
 
 
 
@@ -326,33 +325,15 @@ int main(int argc, char* argv[])
 		
 		if (nRet == MV_OK)
 		{
-			pDataForYUV = (unsigned char*)malloc(stOutFrame.stFrameInfo.nWidth * stOutFrame.stFrameInfo.nHeight * 2);
+			//YUV420 Planar
+			pDataForYUV = (uint8_t*)malloc(stOutFrame.stFrameInfo.nWidth * stOutFrame.stFrameInfo.nHeight * 3);
 			if (NULL == pDataForYUV)
 			{
-				printf("malloc pDataForRGB fail !\n");
+				printf("malloc pDataForYUV420 fail !\n");
 				break;
 			}
-			unsigned int nDataSizeForRGB = stOutFrame.stFrameInfo.nWidth * stOutFrame.stFrameInfo.nHeight * 2;
-
-			// ch:像素格式转换 | en:Convert pixel format 
-			MV_CC_PIXEL_CONVERT_PARAM stConvertParam = { 0 };
-			memset(&stConvertParam, 0, sizeof(MV_CC_PIXEL_CONVERT_PARAM));
-
-			stConvertParam.nWidth = stOutFrame.stFrameInfo.nWidth;                 //ch:图像宽 | en:image width
-			stConvertParam.nHeight = stOutFrame.stFrameInfo.nHeight;               //ch:图像高 | en:image height
-			stConvertParam.pSrcData = stOutFrame.pBufAddr;                            //ch:输入数据缓存 | en:input data buffer
-			stConvertParam.nSrcDataLen = stOutFrame.stFrameInfo.nFrameLen;         //ch:输入数据大小 | en:input data size
-			stConvertParam.enSrcPixelType = stOutFrame.stFrameInfo.enPixelType;    //ch:输入像素格式 | en:input pixel format
-			stConvertParam.enDstPixelType = PixelType_Gvsp_YUV422_Packed; //ch:输出像素格式 | en:output pixel format
-			stConvertParam.pDstBuffer = pDataForYUV;                    //ch:输出数据缓存 | en:output data buffer
-			stConvertParam.nDstBufferSize = nDataSizeForRGB;            //ch:输出缓存大小 | en:output buffer size
-			nRet = MV_CC_ConvertPixelType(handle, &stConvertParam);
 			
-			if (MV_OK != nRet)
-			{
-				printf("Convert Pixel Type fail! nRet [0x%x]\n", nRet);
-				break;
-			}
+
 
 			av_new_packet(&pkt, y_size * 3);
 
@@ -367,23 +348,20 @@ int main(int argc, char* argv[])
 			//picture->data[1] = picture_buf + y_size;      // U 
 
 			//picture->data[2] = picture_buf + y_size * 5 / 4;  // V
-
-			uint8_t *pData;
-			pData = (uint8_t*)malloc(stOutFrame.stFrameInfo.nWidth*stOutFrame.stFrameInfo.nHeight * 2);
+			
 
 			for (int j = 0; j < stOutFrame.stFrameInfo.nWidth*stOutFrame.stFrameInfo.nHeight; j++)
 			{
-				
-				pData[j] = (uint8_t)atoi((char*)&pDataForYUV[j]);
-
+				pDataForYUV[j] = (uint8_t)stOutFrame.pBufAddr[j];
+				pDataForYUV[stOutFrame.stFrameInfo.nWidth*stOutFrame.stFrameInfo.nHeight + j] = 128;
+				pDataForYUV[stOutFrame.stFrameInfo.nWidth*stOutFrame.stFrameInfo.nHeight*2 + j] = 128;
 			}
 			
+			picture->data[0] = pDataForYUV;
 
-			picture->data[0] = pData;
+			picture->data[1] = pDataForYUV + y_size;
 
-			picture->data[1] = pData + y_size;
-
-			picture->data[2] = pData + y_size*1/2;
+			picture->data[2] = pDataForYUV + y_size*2;
 
 			picture->pts = i;
 
@@ -450,6 +428,40 @@ int main(int argc, char* argv[])
 	avio_close(pFormatCtx->pb);
 
 	avformat_free_context(pFormatCtx);
+
+	// ch:停止取流 | en:Stop grab image
+	nRet = MV_CC_StopGrabbing(handle);
+	if (MV_OK != nRet)
+	{
+		printf("Stop Grabbing fail! nRet [0x%x]\n", nRet);
+	}
+
+	// ch:关闭设备 | Close device
+	nRet = MV_CC_CloseDevice(handle);
+	if (MV_OK != nRet)
+	{
+		printf("ClosDevice fail! nRet [0x%x]\n", nRet);
+		
+	}
+
+	// ch:销毁句柄 | Destroy handle
+	nRet = MV_CC_DestroyHandle(handle);
+	if (MV_OK != nRet)
+	{
+		printf("Destroy Handle fail! nRet [0x%x]\n", nRet);
+		
+	}
+
+
+	if (nRet != MV_OK)
+	{
+		if (handle != NULL)
+		{
+			MV_CC_DestroyHandle(handle);
+			handle = NULL;
+		}
+	}
+
 
 	return 0;
 
