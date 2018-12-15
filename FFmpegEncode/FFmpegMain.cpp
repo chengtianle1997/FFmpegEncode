@@ -49,7 +49,33 @@ extern "C"
 #endif
 
 
-
+int flush_encoder(AVFormatContext *fmt_ctx, unsigned int stream_index) {
+	int ret;
+	int got_frame;
+	AVPacket enc_pkt;
+	if (!(fmt_ctx->streams[stream_index]->codec->codec->capabilities & 0x0020))
+		return 0;
+	while (1) {
+		enc_pkt.data = NULL;
+		enc_pkt.size = 0;
+		av_init_packet(&enc_pkt);
+		ret = avcodec_encode_video2(fmt_ctx->streams[stream_index]->codec, &enc_pkt,
+			NULL, &got_frame);
+		av_frame_free(NULL);
+		if (ret < 0)
+			break;
+		if (!got_frame) {
+			ret = 0;
+			break;
+		}
+		printf("Flush Encoder: Succeed to encode 1 frame!\tsize:%5d\n", enc_pkt.size);
+		/* mux encoded frame */
+		ret = av_write_frame(fmt_ctx, &enc_pkt);
+		if (ret < 0)
+			break;
+	}
+	return ret;
+}
 
 
 int main(int argc, char* argv[])
@@ -111,7 +137,7 @@ int main(int argc, char* argv[])
 
 	//Output URL
 
-	if (avio_open(&pFormatCtx->pb, out_file, AVIO_FLAG_READ_WRITE) < 0) {
+	if (avio_open(&pFormatCtx->pb, out_file, 1|2) < 0) {
 
 		printf("Couldn't open output file.");
 
@@ -119,7 +145,7 @@ int main(int argc, char* argv[])
 
 	}
 
-
+	
 
 	//Method 2. More simple
 
@@ -142,15 +168,13 @@ int main(int argc, char* argv[])
 
 	pCodecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
 
-	pCodecCtx->pix_fmt = AV_PIX_FMT_YUVJ422P;
+	pCodecCtx->pix_fmt = AV_PIX_FMT_YUVJ420P;
 
-
+	pCodecCtx->bit_rate = 400000;
 
 	pCodecCtx->width = in_w;
 
 	pCodecCtx->height = in_h;
-
-
 
 	pCodecCtx->time_base.num = 1;
 
@@ -160,11 +184,15 @@ int main(int argc, char* argv[])
 
 	pCodecCtx->framerate.den = 1;
 
+	AVDictionary *param = 0;
+
+	av_dict_set(&param,"preset","slow",0);
+
+	av_dict_set(&param,"tune","zerolatecy",0);
+
 	//Output some information
-
+	
 	av_dump_format(pFormatCtx, 0, out_file, 1);
-
-
 
 	pCodec = avcodec_find_encoder(pCodecCtx->codec_id);
 
@@ -176,7 +204,7 @@ int main(int argc, char* argv[])
 
 	}
 
-	if (avcodec_open2(pCodecCtx, pCodec, NULL) < 0) {
+	if (avcodec_open2(pCodecCtx, pCodec, &param) < 0) {
 
 		printf("Could not open codec.");
 
@@ -195,7 +223,7 @@ int main(int argc, char* argv[])
 
 	picture->height = pCodecCtx->height;
 
-	picture->format = AV_PIX_FMT_GRAY8;
+	picture->format = AV_PIX_FMT_YUVJ420P;
 
 	picture_buf = (uint8_t *)av_malloc(size);
 
@@ -255,6 +283,8 @@ int main(int argc, char* argv[])
 
 		if (got_picture == 1) {
 
+			printf("Succeed to encode frame: %5d\tsize:%5d\n", i, pkt.size);
+
 			pkt.stream_index = video_st->index;
 
 			ret = av_write_frame(pFormatCtx, &pkt);
@@ -266,6 +296,14 @@ int main(int argc, char* argv[])
 		av_free_packet(&pkt);
 
 	}
+
+	//Flush Encoder
+	ret = flush_encoder(pFormatCtx, 0);
+	if (ret < 0) {
+		printf("Flushing encoder failed\n");
+		return -1;
+	}
+
 	//Write Trailer
 
 	av_write_trailer(pFormatCtx);
