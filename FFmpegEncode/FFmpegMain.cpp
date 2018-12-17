@@ -22,6 +22,10 @@ extern "C"
 
 #include "libavformat/avio.h"
 
+#include  "libavutil/pixdesc.h"
+
+//#include  "mjpegenc.h"
+
 };
 
 #else
@@ -125,38 +129,36 @@ int main(int argc, char* argv[])
 	
 
 
-	//Method 1
+	////Method 1
 
-	pFormatCtx = avformat_alloc_context();
+	//pFormatCtx = avformat_alloc_context();
 
-	//Guess format
+	////Guess format
 
-	fmt = av_guess_format("mjpeg", NULL, NULL);
+	//fmt = av_guess_format("mjpeg", NULL, NULL);
 
-	pFormatCtx->oformat = fmt;
-
-	//Output URL
-
-	if (avio_open(&pFormatCtx->pb, out_file, 1|2) < 0) {
-
-		printf("Couldn't open output file.");
-
-		return -1;
-
-	}
-
-	
+	//pFormatCtx->oformat = fmt;
 
 	//Method 2. More simple
 
-	//avformat_alloc_output_context2(&pFormatCtx, NULL, NULL, out_file);
+	avformat_alloc_output_context2(&pFormatCtx, NULL, NULL, out_file);
 
-	//fmt = pFormatCtx->oformat;
+	fmt = pFormatCtx->oformat;
 
 
 	video_st = avformat_new_stream(pFormatCtx, 0);
 
 	if (video_st == NULL) {
+
+		return -1;
+
+	}
+
+	//Output URL
+
+	if (avio_open(&pFormatCtx->pb, out_file, 1 | 2) < 0) {
+
+		printf("Couldn't open output file.");
 
 		return -1;
 
@@ -214,7 +216,6 @@ int main(int argc, char* argv[])
 
 	avcodec_parameters_from_context(video_st->codecpar, pCodecCtx);
 
-
 	picture = av_frame_alloc();
 
 	size = avpicture_get_size(pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
@@ -237,11 +238,11 @@ int main(int argc, char* argv[])
 
 	avpicture_fill((AVPicture *)picture, picture_buf, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
 
+	avformat_init_output(pFormatCtx, &param);
+
 	//Write Header
 
-	avformat_write_header(pFormatCtx, NULL);
-
-
+	avformat_write_header(pFormatCtx, &param);
 
 	y_size = pCodecCtx->width * pCodecCtx->height;
 
@@ -290,8 +291,6 @@ int main(int argc, char* argv[])
 			ret = av_write_frame(pFormatCtx, &pkt);
 
 		}
-
-
 
 		av_free_packet(&pkt);
 
