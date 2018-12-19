@@ -1,0 +1,7 @@
+CameraFFmpeg  基于海康相机的图像编码（JPEG）
+//EncodeGREY8  编码8位灰度图像（Un）
+Encodeh264 无封装（avio）编码h264
+Encodeh264_all 封装编码h264
+FFmpegEncode  编码mjpeg（视频流播放un）
+FFmpegEncodeJPEG 编码JPEG
+TodayisANiceDay  基于ffmpeg源码的mjpeg编码尝试（un）
