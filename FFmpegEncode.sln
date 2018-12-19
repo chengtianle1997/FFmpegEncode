@@ -23,6 +23,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EncodeMPEG1", "EncodeMPEG1\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TodayIsANiceDay", "TodayIsANiceDay\TodayIsANiceDay.vcxproj", "{DBE8C3A1-1D10-402E-A31D-0AC0C63A0EC8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FFmpegEncodeJpeg", "FFmpegEncodeJpeg\FFmpegEncodeJpeg.vcxproj", "{3C9A1501-11C0-4CEF-89A5-A9977781A57B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -111,6 +113,14 @@ Global
 		{DBE8C3A1-1D10-402E-A31D-0AC0C63A0EC8}.Release|x64.Build.0 = Release|x64
 		{DBE8C3A1-1D10-402E-A31D-0AC0C63A0EC8}.Release|x86.ActiveCfg = Release|Win32
 		{DBE8C3A1-1D10-402E-A31D-0AC0C63A0EC8}.Release|x86.Build.0 = Release|Win32
+		{3C9A1501-11C0-4CEF-89A5-A9977781A57B}.Debug|x64.ActiveCfg = Debug|x64
+		{3C9A1501-11C0-4CEF-89A5-A9977781A57B}.Debug|x64.Build.0 = Debug|x64
+		{3C9A1501-11C0-4CEF-89A5-A9977781A57B}.Debug|x86.ActiveCfg = Debug|Win32
+		{3C9A1501-11C0-4CEF-89A5-A9977781A57B}.Debug|x86.Build.0 = Debug|Win32
+		{3C9A1501-11C0-4CEF-89A5-A9977781A57B}.Release|x64.ActiveCfg = Release|x64
+		{3C9A1501-11C0-4CEF-89A5-A9977781A57B}.Release|x64.Build.0 = Release|x64
+		{3C9A1501-11C0-4CEF-89A5-A9977781A57B}.Release|x86.ActiveCfg = Release|Win32
+		{3C9A1501-11C0-4CEF-89A5-A9977781A57B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

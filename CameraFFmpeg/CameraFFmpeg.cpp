@@ -109,9 +109,11 @@ int main(int argc, char* argv[])
 
 	//FILE *in_file = NULL;                            //YUV source
 
-	int in_w, in_h ;                           //YUV's width and height
+	int in_w, in_h ;       //YUV's width and height
+	
+	int CameraNum = 0;
 
-	const char* out_file = "encode.mjpeg";    //Output file
+	//const char* out_file = "encode.mjpeg";    //Output file
 
 	//unsigned char * pData = NULL;
 
@@ -249,11 +251,7 @@ int main(int argc, char* argv[])
 	fmt = av_guess_format("mjpeg", NULL, NULL);
 	pFormatCtx->oformat = fmt;
 
-	//Output URL
-	if (avio_open(&pFormatCtx->pb, out_file, AVIO_FLAG_READ_WRITE) < 0) {
-		printf("Couldn't open output file.");
-		return -1;
-	}
+	
 	
 	//Method 2. More simple
 
@@ -281,7 +279,7 @@ int main(int argc, char* argv[])
 
 	pCodecCtx->height = in_h;
 
-
+	pCodecCtx->bit_rate = 4000000;
 
 	pCodecCtx->time_base.num = 1;
 
@@ -291,9 +289,16 @@ int main(int argc, char* argv[])
 
 	pCodecCtx->framerate.den = 1;
 
+	AVDictionary *param = 0;
+
+	av_dict_set(&param, "preset", "slow", 0);
+
+	av_dict_set(&param, "tune", "zerolatecy", 0);
+
+
 	//Output some information
 
-	av_dump_format(pFormatCtx, 0, out_file, 1);
+	//av_dump_format(pFormatCtx, 0, out_file, 1);
 
 
 
@@ -342,7 +347,7 @@ int main(int argc, char* argv[])
 
 	//Write Header
 
-	avformat_write_header(pFormatCtx, NULL);
+	//avformat_write_header(pFormatCtx, NULL);
 
 	y_size = pCodecCtx->width * pCodecCtx->height;
 
@@ -350,9 +355,34 @@ int main(int argc, char* argv[])
 
 	while (1) {
 		nRet = MV_CC_GetImageBuffer(handle, &stOutFrame, 1000);
+
+		
+
 		
 		if (nRet == MV_OK)
 		{
+			char* out_file = 0;
+
+			out_file = (char*)malloc(40);
+
+			//Êä³öÎÄ¼þ
+			sprintf(out_file, "Camera%d_%d.jpeg", CameraNum, i);
+
+			//Output some information
+			av_dump_format(pFormatCtx, 0, out_file, 1);
+
+			//Output URL
+			if (avio_open(&pFormatCtx->pb, out_file, AVIO_FLAG_READ_WRITE) < 0) {
+				printf("Couldn't open output file.");
+				return -1;
+			}
+
+			avformat_init_output(pFormatCtx, &param);
+
+			//Write Header
+
+			avformat_write_header(pFormatCtx, &param);
+
 			//YUV420 Planar
 			pDataForYUV = (uint8_t*)malloc(stOutFrame.stFrameInfo.nWidth * stOutFrame.stFrameInfo.nHeight * 3);
 			if (NULL == pDataForYUV)
@@ -361,8 +391,6 @@ int main(int argc, char* argv[])
 				break;
 			}
 			
-
-
 			av_new_packet(&pkt, y_size * 3);
 
 			//printf("%d",sizeof(stOutFrame.pBufAddr));
@@ -414,11 +442,16 @@ int main(int argc, char* argv[])
 
 			}
 
+			//Write Trailer
+			av_write_trailer(pFormatCtx);
+
 			i++;
 
 			av_free_packet(&pkt);
 
 			free(pDataForYUV);
+
+			free(out_file);
 		}
 		else
 		{
